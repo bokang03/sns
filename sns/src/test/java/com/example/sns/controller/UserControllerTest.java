@@ -2,6 +2,7 @@ package com.example.sns.controller;
 
 import com.example.sns.domain.User;
 import com.example.sns.dto.UserJoinRequest;
+import com.example.sns.dto.UserLoginRequest;
 import com.example.sns.exception.SnsApplicationException;
 import com.example.sns.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.mock;
@@ -38,11 +40,10 @@ public class UserControllerTest {
         String userName = "userName";
         String password = "password";
 
-        when(userService.join()).thenReturn(mock(User.class));
+        when(userService.join(userName, password)).thenReturn(mock(User.class));
 
         mockMvc.perform(post("/api/v1/users/join")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO : add request body
                         .content(objectMapper.writeValueAsString(new UserJoinRequest(userName, password)))
                 ).andDo(print())
                 .andExpect(status().isOk());
@@ -53,13 +54,56 @@ public class UserControllerTest {
         String userName = "userName";
         String password = "password";
 
-        when(userService.join()).thenThrow(new SnsApplicationException());
+        when(userService.join(userName, password)).thenThrow(new SnsApplicationException());
+
+        mockMvc.perform(post("/api/v1/users/join")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UserJoinRequest(userName, password)))
+                ).andDo(print())
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    public void 로그인() throws Exception{
+        String userName = "userName";
+        String password = "password";
+
+        when(userService.login(userName, password)).thenReturn("test-token");
 
         mockMvc.perform(post("/api/v1/users/join")
                         .contentType(MediaType.APPLICATION_JSON)
                         // TODO : add request body
                         .content(objectMapper.writeValueAsString(new UserJoinRequest(userName, password)))
                 ).andDo(print())
-                .andExpect(status().isConflict());
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithAnonymousUser
+    public void 로그인시_회원가입_안된_userName_입력시_에러발생() throws Exception {
+        String userName = "name";
+        String password = "password";
+
+        when(userService.login(userName, password)).thenThrow(new SnsApplicationException());
+        mockMvc.perform(post("/api/v1/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(new UserLoginRequest(userName, password))))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithAnonymousUser
+    public void 로그인시_비밀번호가_다르면_에러발생() throws Exception {
+        String userName = "name";
+        String password = "password";
+
+        when(userService.login(userName, password)).thenThrow(new SnsApplicationException());
+
+        mockMvc.perform(post("/api/v1/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(new UserLoginRequest(userName, password))))
+                .andDo(print())
+                .andExpect(status().isUnauthorized());
     }
 }
