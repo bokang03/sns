@@ -1,4 +1,4 @@
-package com.example.sns.dto;
+package com.example.sns.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
